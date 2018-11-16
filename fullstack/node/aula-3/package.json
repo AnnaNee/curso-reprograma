@@ -1,0 +1,24 @@
+{
+  "name": "reprograma-node",
+  "version": "1.0.0",
+  "description": "### Organização",
+  "main": "lodash-module.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnnaNee/curso-reprograma.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AnnaNee/curso-reprograma/issues"
+  },
+  "homepage": "https://github.com/AnnaNee/curso-reprograma#readme",
+  "dependencies": {
+    "lodash": "^4.17.11"
+  }
+}
