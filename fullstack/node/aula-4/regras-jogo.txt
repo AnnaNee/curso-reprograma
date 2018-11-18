@@ -1,0 +1,22 @@
+Como o jogo deve funcionar:
+
+O usuário deverá adivinhar um número, gerado pelo programa,
+que vai de 0 a 100. Conforme as tentativas do usuário, o
+programa deve avisar se o usuário acertou ou não.
+Caso não tenha acertado, então o programa deverá avisar se
+o palpite era maior ou menor que o número a ser adivinhado.
+
+Bônus: quando o usuário acertar, ele deverá ter a opção de
+jogar novamente, ou parar e encerrar o programa.
+
+Bônus 2: quando o usuário digitar um caractere inválido,
+que não seja um número, o
+programa deve saber identificar
+e avisar ao usuário que ele está digitando um dado inválido.
+
+Bônus 3: transforme seu jogo em um módulo NPM, suba no NPM e
+use-o em seguida.
+
+Bônus 4: use classes do ES6 para modelar seu jogo. (:
+
+Bonus 5: limitar o número de palpites de acordo com a dificuldade.
