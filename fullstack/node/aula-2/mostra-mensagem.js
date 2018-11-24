@@ -1,8 +1,8 @@
 // Registrando um listener para um evento emitido em outro arquivo
-const enviaMensagem = require('./envia-mensagem.js'); // algo de errado aqui?
-const mensagem = new enviaMensagem();
+const EnviaMensagem = require('./envia-mensagem.js'); // algo de errado aqui?
+const enviaMensagem = new EnviaMensagem();
 
-mensagem.on('mensagemEnviada', mensagem => {
+enviaMensagem.on('mensagemEnviada', mensagem => {
   console.log(`A mensagem "${mensagem}" foi enviada com sucesso!`)
 });
-mensagem.enviar('Olá, mundo!');
+enviaMensagem.enviar('Olá, mundo!');

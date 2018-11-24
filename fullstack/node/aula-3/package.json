@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/AnnaNee/curso-reprograma#readme",
   "dependencies": {
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "mongoose": "^5.3.13"
   }
 }

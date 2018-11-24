@@ -134,6 +134,7 @@ router.delete('/:id', (req, res) => {
     });
 
     hasPermission(decodedId);
+    validateToken(token);
     users.splice(index, 1);
     res.send(user);
   } catch(e) {

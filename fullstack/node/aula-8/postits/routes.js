@@ -1,15 +1,30 @@
 const express = require('express');
+const postits = require('./postits.js');
 const jwt = require('jsonwebtoken');
-const users = require('./users.js');
-const router = express.Router();
+const users = require('../users/users.js');
 const Joi = require('joi');
+const router = express.Router();
+const loggedUserId = token => {
+  let decodedId;
 
-router.use(express.json());
+  if (!token) {
+    throw new TokenError('Sem permissão.', 500);
+  }
+
+  jwt.verify(token, process.env.SECRET, function(error, decoded) {
+    if (error) {
+      throw new TokenError('Falha ao autenticar token.', 500);
+    }
+
+    decodedId = decoded.id;
+  });
+
+  return decodedId;
+}
 
 router.get('/', (req, res) => {
   try {
     const token = req.headers['x-access-token'];
-    let decodedId;
 
     if (!token) {
       throw new TokenError('Sem permissão.', 500);
@@ -19,22 +34,19 @@ router.get('/', (req, res) => {
       if (error) {
         throw new TokenError('Falha ao autenticar token.', 500);
       }
-
-      decodedId = decoded.id;
     });
 
-    hasPermission(decodedId);
-    res.send(users);
+    res.send(postits);
   } catch(e) {
+    console.log(e.code)
     res.status(e.code).send(e.message);
   }
 });
 
 router.get('/:id', (req, res) => {
   try {
-    const user = findUser(req.params.id);
+    const postit = findPostit(req.params.id);
     const token = req.headers['x-access-token'];
-    let decodedId;
 
     if (!token) {
       throw new TokenError('Sem permissão.', 500);
@@ -44,28 +56,25 @@ router.get('/:id', (req, res) => {
       if (error) {
         throw new TokenError('Falha ao autenticar token.', 500);
       }
-
-      decodedId = decoded.id;
     });
 
-    hasPermission(decodedId);
-    res.send(user);
+    res.send(postit);
   } catch(e) {
     res.status(e.code).send(e.message);
   }
 });
 
 router.post('/', (req, res) => {
+  const id = Math.max(...postits.map(postit => postit.id)) + 1;
   const token = req.headers['x-access-token'];
-  const id = Math.max(...users.map(users => users.id)) + 1;
-  const newUser = {
+  const newPostit = {
     id,
-    name: req.body.name,
-    email: req.body.email
+    title: req.body.title,
+    description: req.body.description
   };
-  let decodedId;
 
   try {
+
     if (!token) {
       throw new TokenError('Sem permissão.', 500);
     }
@@ -74,14 +83,12 @@ router.post('/', (req, res) => {
       if (error) {
         throw new TokenError('Falha ao autenticar token.', 500);
       }
-
-      decodedId = decoded.id;
     });
 
-    hasPermission(decodedId);
     validatesRequest(req.body);
-    users.push(newUser);
-    res.send(newUser);
+    postits.push(newPostit);
+    setsRelantionship(newPostit.id, token);
+    res.send(newPostit);
   } catch(e) {
     res.status(e.code).send(e.message);
   }
@@ -89,9 +96,9 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   try {
+    const postit = findPostit(req.params.id);
     const token = req.headers['x-access-token'];
-    const user = findUser(req.params.id);
-    let decodedId;
+    let updatedPostit;
 
     if (!token) {
       throw new TokenError('Sem permissão.', 500);
@@ -101,14 +108,11 @@ router.put('/:id', (req, res) => {
       if (error) {
         throw new TokenError('Falha ao autenticar token.', 500);
       }
-
-      decodedId = decoded.id;
     });
 
-    hasPermission(decodedId);
     validatesRequest(req.body);
-    Object.assign(user, req.body);
-    res.send(user);
+    updatedPostit = Object.assign(postit, req.body);
+    res.send(updatedPostit);
   } catch(e) {
     res.status(e.code).send(e.message);
   }
@@ -116,10 +120,9 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   try {
+    const postit = findPostit(req.params.id);
+    const postitPosition = postits.indexOf(postit);
     const token = req.headers['x-access-token'];
-    const user = findUser(req.params.id);
-    const index = users.indexOf(user);
-    let decodedId;
 
     if (!token) {
       throw new TokenError('Sem permissão.', 500);
@@ -129,23 +132,31 @@ router.delete('/:id', (req, res) => {
       if (error) {
         throw new TokenError('Falha ao autenticar token.', 500);
       }
-
-      decodedId = decoded.id;
     });
 
-    hasPermission(decodedId);
-    users.splice(index, 1);
-    res.send(user);
+    unsetsRelationship(req.params.id, token);
+    postits.splice(postitPosition, 1);
+    res.send(postit);
   } catch(e) {
     res.status(e.code).send(e.message);
   }
 });
 
+function findPostit(id) {
+  const foundPostit = postits.find(postit => postit.id === parseInt(id));
+
+  if (!foundPostit) {
+    throw new PostitError(`Não foi possível encontrar o postit de ID ${id}.`, 400);
+  }
+
+  return foundPostit;
+}
+
 function findUser(id) {
   const foundUser = users.find(user => user.id === parseInt(id));
 
   if (!foundUser) {
-    throw new UserError(`Não foi possível encontrar o usuário de ID ${id}.`, 400);
+    throw new PostitError(`Não foi possível encontrar o postit de ID ${id}.`, 400);
   }
 
   return foundUser;
@@ -153,16 +164,20 @@ function findUser(id) {
 
 function validatesRequest(params) {
   const schema = {
-    name: Joi.string().min(3).required(),
-    email: Joi.string().min(3).required(),
-    password: Joi.string().min(3).required(),
+    title: Joi.string().min(3).required(),
+    description: Joi.string().min(3).required(),
   }
   const validation = Joi.validate(params, schema);
 
   if (validation.error) {
-    throw new UserError(validation.error.details[0].message, 404);
+    throw new PostitError(validation.error.details[0].message, 404);
   }
 }
+
+function PostitError(message, code) {
+  this.message = message;
+  this.code = code;
+};
 
 function UserError(message, code) {
   this.message = message;
@@ -174,14 +189,19 @@ function TokenError(message, code) {
   this.code = code;
 };
 
-function hasPermission(userId) {
-  const user = findUser(userId);
+function setsRelantionship(postitId, token) {
+  const user = findUser(loggedUserId(token));
+  const postit = findPostit(postitId);
 
-  if (!user.roles.includes('admin')) {
-    throw new UserError('Usuário sem permissão.', 500);
-  }
+  user.postits.push(postit);
+}
 
-  return true;
+function unsetsRelationship(postitId, token) {
+  const user = findUser(loggedUserId(token));
+  const postit = findPostit(postitId);
+  const index = postits.indexOf(postit);
+
+  user.postits.splice(index, 1);
 }
 
 module.exports = router;
